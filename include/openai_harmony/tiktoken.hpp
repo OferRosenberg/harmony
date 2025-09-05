@@ -15,13 +15,14 @@ namespace openai_harmony {
 using Rank = uint32_t;
 
 /**
- * @brief Hash function for vector<uint8_t>
+ * @brief Hash function for vectors
  */
 struct VectorHash {
-    size_t operator()(const std::vector<uint8_t>& v) const {
+    template<typename T>
+    size_t operator()(const std::vector<T>& v) const {
         size_t seed = v.size();
-        for (auto& i : v) {
-            seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        for (const auto& i : v) {
+            seed ^= std::hash<T>{}(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
     }

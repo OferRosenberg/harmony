@@ -33,8 +33,11 @@ The C++ conversion maintains the same architectural principles as the original:
 
 ### System Requirements
 - **C++ Standard**: C++20 or later
-- **Platform**: Linux (primary target)
+- **Platform**: Windows 10/11, Linux (cross-platform support)
 - **Build System**: CMake 3.20+
+- **Compilers**: 
+  - Windows: Visual Studio 2022 (MSVC)
+  - Linux: GCC 10+ or Clang 12+
 
 ### Dependencies
 
@@ -49,6 +52,23 @@ The C++ conversion maintains the same architectural principles as the original:
 - **Google Benchmark** - Performance benchmarking
 
 ## Installation
+
+For detailed cross-platform build instructions, see [BUILD_CROSS_PLATFORM.md](BUILD_CROSS_PLATFORM.md).
+
+### Quick Start
+
+#### Windows
+```cmd
+# Use the provided build script
+build_windows.bat
+```
+
+#### Linux
+```bash
+# Use the provided build script
+chmod +x build_linux.sh
+./build_linux.sh
+```
 
 ### Ubuntu/Debian
 

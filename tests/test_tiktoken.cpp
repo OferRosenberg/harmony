@@ -165,7 +165,7 @@ TEST_F(TiktokenExtTest, LoadEncoding) {
 }
 
 TEST_F(TiktokenExtTest, LoadO200kHarmony) {
-    auto tokenizer = TiktokenExt::load_o200k_harmony();
+    auto tokenizer = TiktokenExt::load_encoding(Encoding::O200kHarmony);
     EXPECT_NE(tokenizer, nullptr);
     
     // Test special tokens
@@ -176,7 +176,7 @@ TEST_F(TiktokenExtTest, LoadO200kHarmony) {
 }
 
 TEST_F(TiktokenExtTest, HarmonySpecialTokens) {
-    auto tokenizer = TiktokenExt::load_o200k_harmony();
+    auto tokenizer = TiktokenExt::load_encoding(Encoding::O200kHarmony);
     
     // Test encoding with harmony special tokens
     std::string harmony_text = "<|start|>user<|message|>Hello<|end|>";

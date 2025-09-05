@@ -5,7 +5,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find required packages
-find_package(PkgConfig REQUIRED)
+if(NOT WIN32)
+    find_package(PkgConfig REQUIRED)
+endif()
 find_package(Threads REQUIRED)
 
 # Find nlohmann/json - try different names
@@ -31,6 +33,12 @@ find_package(CURL REQUIRED)
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic -O3)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(/W4 /O2 /EHsc)
+    # Enable parallel compilation
+    add_compile_options(/MP)
+    # Disable specific warnings that are common in cross-platform code
+    add_compile_options(/wd4251 /wd4275)
 endif()
 
 # Include directories
@@ -86,8 +94,9 @@ else()
 endif()
 
 target_link_libraries(openai_harmony 
-    PRIVATE 
+    PUBLIC 
     ${JSON_TARGET}
+    PRIVATE
     OpenSSL::SSL 
     OpenSSL::Crypto
     CURL::libcurl
@@ -146,7 +155,14 @@ if(BUILD_EXAMPLES)
         target_link_libraries(harmony_example PRIVATE openai_harmony)
         
         # Set RPATH for finding the shared library
-        if(APPLE)
+        if(WIN32)
+            # On Windows, copy the DLL to the same directory as the executable
+            add_custom_command(TARGET harmony_example POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:openai_harmony>
+                $<TARGET_FILE_DIR:harmony_example>
+            )
+        elseif(APPLE)
             set_target_properties(harmony_example PROPERTIES
                 BUILD_RPATH "${CMAKE_BINARY_DIR}"
                 INSTALL_RPATH "@loader_path/../lib"
@@ -166,7 +182,14 @@ if(BUILD_EXAMPLES)
         target_link_libraries(interactive_example PRIVATE openai_harmony)
         
         # Set RPATH for finding the shared library
-        if(APPLE)
+        if(WIN32)
+            # On Windows, copy the DLL to the same directory as the executable
+            add_custom_command(TARGET interactive_example POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:openai_harmony>
+                $<TARGET_FILE_DIR:interactive_example>
+            )
+        elseif(APPLE)
             set_target_properties(interactive_example PROPERTIES
                 BUILD_RPATH "${CMAKE_BINARY_DIR}"
                 INSTALL_RPATH "@loader_path/../lib"
@@ -184,12 +207,20 @@ endif()
 
 # Installation
 install(TARGETS openai_harmony
+    EXPORT openai_harmony-targets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY include/ DESTINATION include)
+
+# Export targets
+install(EXPORT openai_harmony-targets
+    FILE openai_harmony-targets.cmake
+    NAMESPACE openai_harmony::
+    DESTINATION lib/cmake/openai_harmony
+)
 
 # Create config file
 include(CMakePackageConfigHelpers)
