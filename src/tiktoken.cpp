@@ -62,7 +62,7 @@ CoreBPE::CoreBPE(const std::unordered_map<std::vector<uint8_t>, Rank, VectorHash
             std::regex special_regex(special_pattern);
             special_regex_tls_.resize(16, special_regex);
         }
-    } catch (const std::exception& e) {
+    } catch (const std::exception&) {
         // Fallback to simple regex if pattern is invalid
         std::regex fallback_regex(R"(\S+|\s+)");
         regex_tls_.resize(16, fallback_regex);

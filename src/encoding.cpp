@@ -63,7 +63,7 @@ std::vector<Rank> HarmonyEncoding::render_conversation(
 
 std::vector<Message> HarmonyEncoding::parse_messages_from_completion_tokens(
     const std::vector<Rank>& tokens,
-    const std::optional<Role>& role) const {
+    const std::optional<Role>& /* role */) const {
     
     std::vector<Message> messages;
     
@@ -95,7 +95,7 @@ std::vector<Rank> HarmonyEncoding::render(
 void HarmonyEncoding::render_into(
     const Message& message,
     std::vector<Rank>& into,
-    const std::optional<RenderOptions>& render_options) const {
+    const std::optional<RenderOptions>& /* render_options */) const {
     
     // Simplified rendering - just encode the message content
     for (const auto& content : message.content) {
@@ -141,7 +141,7 @@ std::unordered_set<Rank> HarmonyEncoding::stop_tokens_for_assistant_actions() co
 // Missing methods that are called in the implementation
 std::vector<Rank> HarmonyEncoding::render_message(
     const Message& message, 
-    const std::optional<RenderConversationConfig>& config) const {
+    const std::optional<RenderConversationConfig>& /* config */) const {
     
     std::vector<Rank> tokens;
     
@@ -219,12 +219,12 @@ std::vector<Rank> HarmonyEncoding::render_message(
             }
             
             if (system_content.channel_config) {
-                const auto& config = *system_content.channel_config;
-                if (config.channel_required && !config.valid_channels.empty()) {
+                const auto& channel_config = *system_content.channel_config;
+                if (channel_config.channel_required && !channel_config.valid_channels.empty()) {
                     ss << "\nRequired channels: ";
-                    for (size_t i = 0; i < config.valid_channels.size(); ++i) {
+                    for (size_t i = 0; i < channel_config.valid_channels.size(); ++i) {
                         if (i > 0) ss << ", ";
-                        ss << config.valid_channels[i];
+                        ss << channel_config.valid_channels[i];
                     }
                     ss << "\n";
                 }

@@ -193,23 +193,23 @@ Message Message::from_role_and_contents(Role role, const std::vector<Content>& c
     return Message(Author(role), contents);
 }
 
-Message& Message::adding_content(const Content& content) {
-    this->content.push_back(content);
+Message& Message::adding_content(const Content& new_content) {
+    this->content.push_back(new_content);
     return *this;
 }
 
-Message& Message::with_channel(const std::string& channel) {
-    this->channel = channel;
+Message& Message::with_channel(const std::string& new_channel) {
+    this->channel = new_channel;
     return *this;
 }
 
-Message& Message::with_recipient(const std::string& recipient) {
-    this->recipient = recipient;
+Message& Message::with_recipient(const std::string& new_recipient) {
+    this->recipient = new_recipient;
     return *this;
 }
 
-Message& Message::with_content_type(const std::string& content_type) {
-    this->content_type = content_type;
+Message& Message::with_content_type(const std::string& new_content_type) {
+    this->content_type = new_content_type;
     return *this;
 }
 

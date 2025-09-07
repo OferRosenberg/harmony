@@ -47,7 +47,7 @@ public:
     explicit RenderFormattingTokenError(FormattingToken t) 
         : std::runtime_error("tried to render unmapped formatting token"), token(t) {}
         
-    RenderFormattingTokenError(FormattingToken t, const std::vector<Rank>& encoding)
+    RenderFormattingTokenError(FormattingToken t, const std::vector<Rank>& /* encoding */)
         : std::runtime_error("Expected encoding of formatting token to be a single token"), token(t) {}
 };
 
