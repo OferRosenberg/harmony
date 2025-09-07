@@ -3,6 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <sstream>
+#include <iostream>
 
 namespace openai_harmony {
 
@@ -35,7 +36,9 @@ CoreBPE::CoreBPE(const std::unordered_map<std::vector<uint8_t>, Rank, VectorHash
     
     // Initialize regex patterns (simplified for now)
     try {
-        std::regex main_regex(pattern.empty() ? R"([^\r\n\p{L}\p{N}]?+\p{L}++|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s++)" : pattern);
+        // Use a simpler pattern that works better with MSVC
+        std::string simple_pattern = pattern.empty() ? R"(\S+|\s+)" : pattern;
+        std::regex main_regex(simple_pattern);
         regex_tls_.resize(16, main_regex);  // Pre-allocate for thread safety
         
         // Build special tokens regex
@@ -83,18 +86,29 @@ const std::regex& CoreBPE::get_tl_special_regex() const {
 std::vector<Rank> CoreBPE::encode_ordinary(const std::string& text) const {
     std::vector<Rank> result;
     
-    // Simple tokenization - split by regex and encode each piece
-    const auto& regex = get_tl_regex();
-    std::sregex_iterator iter(text.begin(), text.end(), regex);
-    std::sregex_iterator end;
+    if (text.empty()) {
+        return result;
+    }
     
-    for (; iter != end; ++iter) {
-        std::string piece = iter->str();
-        std::vector<uint8_t> piece_bytes(piece.begin(), piece.end());
+    // Simple character-by-character encoding for better compatibility
+    for (size_t i = 0; i < text.length(); ++i) {
+        char c = text[i];
+        std::vector<uint8_t> char_bytes = {static_cast<uint8_t>(c)};
         
-        // Apply BPE to this piece
-        auto piece_tokens = byte_pair_encode(piece_bytes, encoder_);
-        result.insert(result.end(), piece_tokens.begin(), piece_tokens.end());
+        // Try to find this character in the encoder
+        auto it = encoder_.find(char_bytes);
+        if (it != encoder_.end()) {
+            result.push_back(it->second);
+        } else {
+            // If not found, try BPE encoding
+            auto char_tokens = byte_pair_encode(char_bytes, encoder_);
+            if (!char_tokens.empty()) {
+                result.insert(result.end(), char_tokens.begin(), char_tokens.end());
+            } else {
+                // If BPE also fails, use the raw byte value as token
+                result.push_back(static_cast<Rank>(static_cast<uint8_t>(c)));
+            }
+        }
     }
     
     return result;
@@ -181,6 +195,9 @@ std::vector<uint8_t> CoreBPE::decode_bytes(const std::vector<Rank>& tokens) cons
             if (special_it != special_tokens_decoder_.end()) {
                 const auto& bytes = special_it->second;
                 result.insert(result.end(), bytes.begin(), bytes.end());
+            } else if (token < 256) {
+                // Handle raw byte tokens (0-255)
+                result.push_back(static_cast<uint8_t>(token));
             } else {
                 throw DecodeKeyError(token);
             }

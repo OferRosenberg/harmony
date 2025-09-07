@@ -100,4 +100,20 @@ std::shared_ptr<HarmonyEncoding> load_harmony_encoding(HarmonyEncodingName name)
     }
 }
 
+std::string harmony_encoding_name_to_string(HarmonyEncodingName name) {
+    switch (name) {
+        case HarmonyEncodingName::HarmonyGptOss:
+            return "harmony_gpt_oss";
+        default:
+            throw std::invalid_argument("Unknown harmony encoding name");
+    }
+}
+
+HarmonyEncodingName string_to_harmony_encoding_name(const std::string& str) {
+    if (str == "harmony_gpt_oss") {
+        return HarmonyEncodingName::HarmonyGptOss;
+    }
+    throw std::invalid_argument("Unknown harmony encoding name: " + str);
+}
+
 } // namespace openai_harmony

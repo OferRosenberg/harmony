@@ -1,5 +1,6 @@
 #pragma once
 
+#include "export.hpp"
 #include "tiktoken.hpp"
 #include <string>
 #include <memory>
@@ -16,7 +17,7 @@ enum class Encoding {
 /**
  * @brief Tiktoken extension for loading encodings
  */
-class TiktokenExt {
+class OPENAI_HARMONY_CLASS TiktokenExt {
 public:
     /**
      * @brief Load an encoding by type

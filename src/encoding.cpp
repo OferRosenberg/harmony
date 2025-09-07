@@ -68,7 +68,12 @@ std::vector<Message> HarmonyEncoding::parse_messages_from_completion_tokens(
     std::vector<Message> messages;
     
     // Convert tokens back to text first
-    std::string text = tokenizer_->decode_utf8(tokens);
+    std::string text;
+    try {
+        text = tokenizer_->decode_utf8(tokens);
+    } catch (const std::exception&) {
+        return messages;
+    }
     
     // Parse the harmony format
     messages = parse_harmony_format(text);
@@ -297,47 +302,136 @@ std::string HarmonyEncoding::role_to_special_token(Role role) const {
 std::vector<Message> HarmonyEncoding::parse_harmony_format(const std::string& text) const {
     std::vector<Message> messages;
     
-    // Simple regex-based parsing for harmony format
-    std::regex message_regex(R"(<\|start\|>([^<]+)(?:<\|channel\|>([^<]+))?(?:\s+to=([^<\|]+))?(?:<\|constrain\|>([^<]+))?<\|message\|>(.*?)<\|end\|>)");
+    if (text.empty()) {
+        return messages;
+    }
     
-    std::sregex_iterator iter(text.begin(), text.end(), message_regex);
-    std::sregex_iterator end;
+    // Simple state-based parsing for harmony format
+    size_t pos = 0;
     
-    for (; iter != end; ++iter) {
-        const std::smatch& match = *iter;
+    while (pos < text.length()) {
+        // Look for start token
+        size_t start_pos = text.find("<|start|>", pos);
+        if (start_pos == std::string::npos) break;
         
-        // Parse role
-        std::string role_str = match[1].str();
+        pos = start_pos + 9; // Skip "<|start|>"
+        
+        // Safety check
+        if (pos >= text.length()) break;
+        
+        // Find role token - could be <|role|> or just role text
         Role role = Role::User; // Default
-        if (role_str == "system") role = Role::System;
-        else if (role_str == "user") role = Role::User;
-        else if (role_str == "assistant") role = Role::Assistant;
-        else if (role_str == "developer") role = Role::Developer;
-        else if (role_str == "tool") role = Role::Tool;
+        
+        if (pos + 10 <= text.length() && text.substr(pos, 10) == "<|system|>") {
+            role = Role::System;
+            pos += 10;
+        } else if (pos + 8 <= text.length() && text.substr(pos, 8) == "<|user|>") {
+            role = Role::User;
+            pos += 8;
+        } else if (pos + 13 <= text.length() && text.substr(pos, 13) == "<|assistant|>") {
+            role = Role::Assistant;
+            pos += 13;
+        } else if (pos + 12 <= text.length() && text.substr(pos, 12) == "<|developer|>") {
+            role = Role::Developer;
+            pos += 12;
+        } else if (pos + 8 <= text.length() && text.substr(pos, 8) == "<|tool|>") {
+            role = Role::Tool;
+            pos += 8;
+        } else if (pos + 6 <= text.length() && text.substr(pos, 6) == "system") {
+            role = Role::System;
+            pos += 6;
+        } else if (pos + 4 <= text.length() && text.substr(pos, 4) == "user") {
+            role = Role::User;
+            pos += 4;
+        } else if (pos + 9 <= text.length() && text.substr(pos, 9) == "assistant") {
+            role = Role::Assistant;
+            pos += 9;
+        } else if (pos + 9 <= text.length() && text.substr(pos, 9) == "developer") {
+            role = Role::Developer;
+            pos += 9;
+        } else if (pos + 4 <= text.length() && text.substr(pos, 4) == "tool") {
+            role = Role::Tool;
+            pos += 4;
+        } else {
+            // Skip to next potential role token
+            pos++;
+            continue;
+        }
         
         // Create message
         Message message(Author(role), {});
         
-        // Add channel if present
-        if (match[2].matched) {
-            message.channel = match[2].str();
+        // Parse optional components (channel, recipient, content type) with bounds checking
+        while (pos < text.length()) {
+            if (pos + 11 <= text.length() && text.substr(pos, 11) == "<|channel|>") {
+                pos += 11;
+                if (pos >= text.length()) break;
+                
+                size_t channel_end = text.find("<|", pos);
+                size_t space_end = text.find(" ", pos);
+                
+                // Channel ends at the first of: next token, space, or end of string
+                size_t actual_end = channel_end;
+                if (space_end != std::string::npos && (actual_end == std::string::npos || space_end < actual_end)) {
+                    actual_end = space_end;
+                }
+                if (actual_end == std::string::npos) {
+                    actual_end = text.length();
+                }
+                
+                if (actual_end > pos) {
+                    message.channel = text.substr(pos, actual_end - pos);
+                }
+                pos = actual_end;
+            } else if (pos + 12 <= text.length() && text.substr(pos, 12) == "<|constrain|>") {
+                pos += 12;
+                if (pos >= text.length()) break;
+                
+                size_t constrain_end = text.find("<|", pos);
+                if (constrain_end != std::string::npos && constrain_end > pos) {
+                    message.content_type = text.substr(pos, constrain_end - pos);
+                    pos = constrain_end;
+                }
+            } else if (pos + 11 <= text.length() && text.substr(pos, 11) == "<|message|>") {
+                pos += 11;
+                break;
+            } else if (pos + 4 <= text.length() && text.substr(pos, 4) == " to=") {
+                pos += 4;
+                if (pos >= text.length()) break;
+                
+                size_t recipient_end = text.find("<|", pos);
+                if (recipient_end != std::string::npos && recipient_end > pos) {
+                    message.recipient = text.substr(pos, recipient_end - pos);
+                    pos = recipient_end;
+                } else {
+                    // Look for space or end of string
+                    size_t space_pos = text.find(" ", pos);
+                    size_t end_pos = (space_pos != std::string::npos) ? space_pos : text.length();
+                    if (end_pos > pos) {
+                        message.recipient = text.substr(pos, end_pos - pos);
+                    }
+                    pos = end_pos;
+                }
+            } else {
+                pos++;
+            }
         }
         
-        // Add recipient if present
-        if (match[3].matched) {
-            message.recipient = match[3].str();
+        // Find message content
+        size_t content_start = pos;
+        size_t content_end = text.find("<|end|>", content_start);
+        if (content_end == std::string::npos) {
+            // No end token, take rest of string
+            content_end = text.length();
         }
         
-        // Add content type if present
-        if (match[4].matched) {
-            message.content_type = match[4].str();
-        }
-        
-        // Add content
-        std::string content_text = match[5].str();
+        std::string content_text = text.substr(content_start, content_end - content_start);
         message.content.push_back(TextContent(content_text));
         
         messages.push_back(message);
+        
+        // Move past the end token
+        pos = content_end + 7; // Skip "<|end|>"
     }
     
     return messages;
@@ -352,9 +446,15 @@ StreamableParser& StreamableParser::process(Rank token) {
     // Store token
     tokens_.push_back(token);
     
-    // Convert token to text
-    std::string token_text = encoding_.tokenizer().decode_utf8({token});
-    
+    // Decode this single token
+    std::string token_text;
+    try {
+        token_text = encoding_.tokenizer().decode_utf8({token});
+    } catch (const std::exception&) {
+        // Skip invalid tokens
+        return *this;
+    }
+
     switch (state_) {
         case StreamState::ExpectStart:
             if (token_text == "<|start|>") {
@@ -362,24 +462,68 @@ StreamableParser& StreamableParser::process(Rank token) {
             }
             break;
             
-        case StreamState::Header:
-            current_role_ = parse_role_from_token(token_text);
-            if (current_role_) {
+        case StreamState::Header: {
+            auto role_opt = parse_role_from_token(token_text);
+            if (role_opt) {
+                current_role_ = *role_opt;
+            } else if (token_text == "<|channel|>") {
+                state_ = StreamState::Channel;
+            } else if (token_text == "<|message|>") {
                 state_ = StreamState::Content;
+            } else {
+                // Accumulate role name from individual character tokens
+                if (!current_role_) {
+                    // Build up role name character by character
+                    std::string accumulated_role;
+                    if (current_channel_) {
+                        accumulated_role = *current_channel_;
+                    }
+                    accumulated_role += token_text;
+                    
+                    // Check if we have a complete role name
+                    if (accumulated_role == "assistant") {
+                        current_role_ = Role::Assistant;
+                        current_channel_.reset(); // Clear temporary storage
+                    } else if (accumulated_role == "user") {
+                        current_role_ = Role::User;
+                        current_channel_.reset();
+                    } else if (accumulated_role == "system") {
+                        current_role_ = Role::System;
+                        current_channel_.reset();
+                    } else if (accumulated_role == "developer") {
+                        current_role_ = Role::Developer;
+                        current_channel_.reset();
+                    } else if (accumulated_role == "tool") {
+                        current_role_ = Role::Tool;
+                        current_channel_.reset();
+                    } else {
+                        // Store partial role name temporarily in current_channel_
+                        current_channel_ = accumulated_role;
+                    }
+                }
             }
             break;
-            
+        }
+        
+        case StreamState::Channel:
+            if (token_text == "<|message|>") {
+                state_ = StreamState::Content;
+            } else {
+                // Accumulate channel name (could be multiple tokens)
+                if (current_channel_) {
+                    *current_channel_ += token_text;
+                } else {
+                    current_channel_ = token_text;
+                }
+            }
+            break;
+
         case StreamState::Content:
-            if (token_text == "<|channel|>") {
-                // Handle channel parsing
-            } else if (token_text == "<|constrain|>") {
-                // Handle constraint parsing
-            } else if (token_text == "<|message|>") {
-                // Start content collection
-            } else if (token_text == "<|end|>") {
+            if (token_text == "<|end|>") {
                 finalize_current_message();
                 state_ = StreamState::ExpectStart;
             } else {
+                // Regular content
                 current_content_ += token_text;
                 last_content_delta_ = token_text;
             }
@@ -416,6 +560,9 @@ std::optional<std::string> StreamableParser::current_content_type() const {
     return current_content_type_;
 }
 
+std::optional<std::string> StreamableParser::last_content_delta() const {
+    return last_content_delta_;
+}
 
 nlohmann::json StreamableParser::state_json() const {
     nlohmann::json j;
@@ -466,10 +613,10 @@ void StreamableParser::finalize_current_message() {
         
         // Reset state
         current_content_.clear();
-        current_role_ = std::nullopt;
-        current_channel_ = std::nullopt;
-        current_recipient_ = std::nullopt;
-        current_content_type_ = std::nullopt;
+        current_role_.reset();
+        current_channel_.reset();
+        current_recipient_.reset();
+        current_content_type_.reset();
     }
 }
 

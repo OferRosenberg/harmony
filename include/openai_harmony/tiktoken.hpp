@@ -131,13 +131,13 @@ public:
 /**
  * @brief Byte pair encoding function
  */
-std::vector<Rank> byte_pair_encode(const std::vector<uint8_t>& piece, 
+OPENAI_HARMONY_API std::vector<Rank> byte_pair_encode(const std::vector<uint8_t>& piece, 
                                   const std::unordered_map<std::vector<uint8_t>, Rank, VectorHash>& ranks);
 
 /**
  * @brief Byte pair merge function (internal helper)
  */
-std::vector<std::pair<size_t, Rank>> byte_pair_merge(
+OPENAI_HARMONY_API std::vector<std::pair<size_t, Rank>> byte_pair_merge(
     const std::unordered_map<std::vector<uint8_t>, Rank, VectorHash>& ranks, 
     const std::vector<uint8_t>& piece);
 

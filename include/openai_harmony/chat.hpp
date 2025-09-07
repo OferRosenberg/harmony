@@ -112,7 +112,7 @@ struct ChannelConfig {
 /**
  * @brief Tool namespace configuration
  */
-struct ToolNamespaceConfig {
+struct OPENAI_HARMONY_CLASS ToolNamespaceConfig {
     std::string name;
     std::optional<std::string> description;
     std::vector<ToolDescription> tools;

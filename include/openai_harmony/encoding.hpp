@@ -94,6 +94,7 @@ struct RenderOptions {
 enum class StreamState {
     ExpectStart,
     Header,
+    Channel,
     Content
 };
 
