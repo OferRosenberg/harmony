@@ -118,7 +118,7 @@ if(BUILD_TESTS)
         
         # Check which test files exist
         set(TEST_SOURCES)
-        foreach(test_file test_harmony test_chat test_encoding test_tiktoken)
+        foreach(test_file test_harmony test_chat test_encoding test_tiktoken test_minimal_integration test_harmony_integration)
             if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${test_file}.cpp")
                 list(APPEND TEST_SOURCES "tests/${test_file}.cpp")
             endif()

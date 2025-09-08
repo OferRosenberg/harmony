@@ -11,6 +11,18 @@
 
 namespace openai_harmony {
 
+// Helper function for comparing optional nlohmann::json values
+inline bool json_optional_equal(const std::optional<nlohmann::json>& a, const std::optional<nlohmann::json>& b) {
+    if (a.has_value() != b.has_value()) {
+        return false;
+    }
+    if (!a.has_value()) {
+        return true; // Both are nullopt
+    }
+    // Compare JSON values as strings to avoid operator== issues
+    return a.value().dump() == b.value().dump();
+}
+
 /**
  * @brief Role of a message author
  */
@@ -84,7 +96,9 @@ struct ToolDescription {
     }
 
     bool operator==(const ToolDescription& other) const {
-        return name == other.name && description == other.description && parameters == other.parameters;
+        return name == other.name && 
+               description == other.description && 
+               json_optional_equal(parameters, other.parameters);
     }
 };
 

@@ -12,6 +12,8 @@ add_executable(harmony_tests
     test_integration.cpp
     test_harmony_comprehensive.cpp
     test_encoding_load.cpp
+    test_harmony_integration.cpp
+    test_minimal_integration.cpp
 )
 
 target_link_libraries(harmony_tests

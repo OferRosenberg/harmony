@@ -53,11 +53,14 @@ ToolNamespaceConfig ToolNamespaceConfig::browser() {
         ),
         ToolDescription::new_tool(
             "open",
-            "Opens the link `id` from the page indicated by `cursor` starting at line number `loc`, showing `num_lines` lines.\nValid link ids are displayed with the formatting: `【{id}†.*】`.\nIf `cursor` is not provided, the most recent page is implied.\nIf `id` is a string, it is treated as a fully qualified URL associated with `source`.\nIf `loc` is not provided, the viewport will be positioned at the beginning of the document or centered on the most relevant passage, if available.\nUse this function without `id` to scroll to a new location of an opened page.",
+            "Opens the link `id` from the page indicated by `cursor` starting at line number `loc`, showing `num_lines` lines.",
             nlohmann::json{
                 {"type", "object"},
                 {"properties", {
-                    {"id", {{"type", nlohmann::json::array({"number", "string"})}, {"default", -1}}},
+                    {"id", {{"oneOf", nlohmann::json::array({
+                        {{"type", "number"}},
+                        {{"type", "string"}}
+                    })}, {"default", -1}}},
                     {"cursor", {{"type", "number"}, {"default", -1}}},
                     {"loc", {{"type", "number"}, {"default", -1}}},
                     {"num_lines", {{"type", "number"}, {"default", -1}}},

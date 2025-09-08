@@ -95,6 +95,7 @@ enum class StreamState {
     ExpectStart,
     Header,
     Channel,
+    Constrain,
     Content
 };
 
