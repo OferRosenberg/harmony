@@ -11,7 +11,8 @@ name = "openai_harmony"
 crate-type = ["rlib", "cdylib"]
 
 [features]
-default = []
+default = ["remote-vocab-download"]
+remote-vocab-download = ["reqwest"]
 python-binding = ["pyo3"]
 wasm-binding = ["wasm-bindgen", "serde-wasm-bindgen", "wasm-bindgen-futures"]
 
@@ -33,7 +34,7 @@ sha2 = "0.10.9"
 # installation on the CI runners. We disable the default features (which
 # include `platform-native-tls`) and explicitly enable only the capabilities
 # we need.
-reqwest = { version = "0.12.5", default-features = false, features = [
+reqwest = { version = "0.12.5", optional = true, default-features = false, features = [
     "blocking",
     "json",
     "multipart",

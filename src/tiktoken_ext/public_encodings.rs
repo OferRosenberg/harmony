@@ -1,10 +1,13 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufReader, BufWriter, Read as _, Write as _},
+    io::BufReader,
     path::{Path, PathBuf},
     sync::OnceLock,
 };
+
+#[cfg(feature = "remote-vocab-download")]
+use std::io::{BufWriter, Read as _, Write as _};
 
 use base64::{prelude::BASE64_STANDARD, Engine as _};
 
@@ -505,7 +508,7 @@ fn verify_file_hash(
 
 /// Loads a remote file to `destination` and returns the computed hash of the
 /// file contents.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "remote-vocab-download"))]
 fn load_remote_file(url: &str, destination: &Path) -> Result<String, RemoteVocabFileError> {
     let client = reqwest::blocking::Client::new();
     let mut response = client
@@ -534,6 +537,17 @@ fn load_remote_file(url: &str, destination: &Path) -> Result<String, RemoteVocab
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+/// Fallback implementation when remote vocab download is disabled
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "remote-vocab-download")))]
+fn load_remote_file(_url: &str, _destination: &Path) -> Result<String, RemoteVocabFileError> {
+    Err(RemoteVocabFileError::FailedToDownloadOrLoadVocabFile(
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Remote file downloading is disabled. Please set TIKTOKEN_ENCODINGS_BASE environment variable to point to local vocabulary files.",
+        )),
+    ))
+}
+
 #[cfg(target_arch = "wasm32")]
 fn load_remote_file(_url: &str, _destination: &Path) -> Result<String, RemoteVocabFileError> {
     Err(RemoteVocabFileError::FailedToDownloadOrLoadVocabFile(
@@ -544,7 +558,7 @@ fn load_remote_file(_url: &str, _destination: &Path) -> Result<String, RemoteVoc
     ))
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "remote-vocab-download"))]
 async fn load_remote_file_bytes(url: &str) -> Result<Vec<u8>, RemoteVocabFileError> {
     use reqwest::Client;
 
@@ -560,6 +574,16 @@ async fn load_remote_file_bytes(url: &str) -> Result<Vec<u8>, RemoteVocabFileErr
         .await
         .map_err(|e| RemoteVocabFileError::FailedToDownloadOrLoadVocabFile(Box::new(e)))?;
     Ok(bytes.to_vec())
+}
+
+#[cfg(all(target_arch = "wasm32", not(feature = "remote-vocab-download")))]
+async fn load_remote_file_bytes(_url: &str) -> Result<Vec<u8>, RemoteVocabFileError> {
+    Err(RemoteVocabFileError::FailedToDownloadOrLoadVocabFile(
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Remote file downloading is disabled. For WASM builds, pre-download vocabulary files and bundle them with your application.",
+        )),
+    ))
 }
 
 #[cfg(test)]
