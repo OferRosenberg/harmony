@@ -1,26 +1,11 @@
 @echo off
-REM Build script for OpenAI Harmony Python bindings - Windows without reqwest dependency
-REM This script builds Python wheels using local vocabulary files
+REM Test script for OpenAI Harmony Python bindings - Windows
+REM This script runs Python tests using the virtual environment
 
 echo ========================================
-echo OpenAI Harmony Python Builder (Windows)
+echo OpenAI Harmony Python Tests (Windows)
 echo ========================================
 echo.
-
-REM Check if Rust is installed
-where cargo >nul 2>nul
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Cargo not found. Please install Rust first.
-    echo Visit: https://rustup.rs/
-    exit /b 1
-)
-
-REM Check if Python is installed
-where python >nul 2>nul
-if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Python not found. Please install Python first.
-    exit /b 1
-)
 
 REM Check if virtual environment exists
 if not exist ".venv" (
@@ -39,28 +24,31 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo [OK] Virtual environment activated
+echo.
 
-REM Check if Maturin is installed in the virtual environment
-python -c "import maturin" >nul 2>nul
+REM Check if pytest is installed
+python -c "import pytest" >nul 2>nul
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Maturin not found in virtual environment.
+    echo [ERROR] Pytest not found in virtual environment.
     echo Please run: install_python_dependencies_windows.bat
     exit /b 1
 )
 
-REM Display versions
-echo Build tools info:
-rustc --version
-python --version
-maturin --version
+REM Check if openai_harmony is installed
+python -c "import openai_harmony" >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] openai_harmony package not found.
+    echo Please run: build_python_rust_windows.bat
+    exit /b 1
+)
+
+echo [OK] openai_harmony package found
 echo.
 
 REM Check for vocabulary files
 if not exist "vocab_files\o200k_base.tiktoken" (
     echo [ERROR] Vocabulary files not found.
     echo Please run: download_vocab_files_rust_windows.bat
-    echo.
-    echo This will download the required .tiktoken files to avoid reqwest dependency.
     exit /b 1
 )
 
@@ -80,32 +68,33 @@ set TIKTOKEN_ENCODINGS_BASE=vocab_files
 echo [OK] TIKTOKEN_ENCODINGS_BASE=%TIKTOKEN_ENCODINGS_BASE%
 echo.
 
-echo Building Python wheel for OpenAI Harmony...
-echo Using manifest: Cargo.toml (Windows version without reqwest)
+echo Running Python tests for OpenAI Harmony...
+echo Test file: tests\test_harmony.py
 echo.
 
-REM Build Python wheel with local vocabulary files (no reqwest)
-maturin develop --release --no-default-features --features python-binding
+REM Run pytest with verbose output
+pytest tests\test_harmony.py -v
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo [ERROR] Failed to build Python wheel
+    echo [ERROR] Python tests failed
     exit /b 1
 )
 
 echo.
 echo ========================================
-echo Python wheel build completed successfully! [OK]
+echo All Python tests passed successfully! [OK]
 echo ========================================
 echo.
-echo The openai_harmony package has been installed in development mode.
+echo Test coverage includes:
+echo - Python bindings functionality
+echo - Message rendering and parsing
+echo - Tokenization with local vocab files
+echo - Conversation handling
+echo - Streaming parser
+echo - Error handling
 echo.
 echo Environment:
 echo - TIKTOKEN_ENCODINGS_BASE=%TIKTOKEN_ENCODINGS_BASE%
+echo - Virtual environment: .venv
 echo - No reqwest dependency (uses local vocab files)
-echo.
-echo Test the installation:
-echo   python -c "import openai_harmony; print('[OK] Import successful')"
-echo.
-echo Next steps:
-echo - Run tests: test_python_rust_windows.bat
 echo.
