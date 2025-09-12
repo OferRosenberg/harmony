@@ -154,11 +154,83 @@ through thin [`pyo3`](https://pyo3.rs/) bindings.
 ├── python/openai_harmony/ # Pure-Python wrapper around the binding
 │   └── __init__.py       # Dataclasses + helper API mirroring chat.rs
 │
+├── build_utils/          # Build scripts and utilities
+│   ├── windows/          # Windows build scripts and docs
+│   ├── linux/            # Linux build scripts and docs
+│   └── README.md         # Build system documentation
+│
+├── examples/             # Example applications and tools
+│   ├── harmony_renderer.py    # Command-line token renderer
+│   ├── harmony_parser.py      # Command-line token parser
+│   ├── harmony_chatbot_gui.py # GUI chatbot application
+│   ├── run_*.sh/.bat     # Platform-specific launchers
+│   └── README.md         # Examples documentation
+│
 ├── tests/                # Python test-suite (1-to-1 port of tests.rs)
 ├── Cargo.toml            # Rust package manifest
 ├── pyproject.toml        # Python build configuration for maturin
 └── README.md             # You are here 🖖
 ```
+
+## Getting Started
+
+### Quick Setup
+
+To build and use OpenAI Harmony locally:
+
+#### Windows
+```cmd
+# Navigate to Windows build utilities
+cd build_utils/windows
+
+# Run the complete setup
+download_vocab_files_rust_windows.bat
+install_python_dependencies_windows.bat
+build_rust_windows.bat
+build_python_rust_windows.bat
+
+# Test the installation
+test_rust_windows.bat
+test_python_rust_windows.bat
+
+# Try the examples
+cd ../../examples
+run_harmony_chatbot_gui.bat
+```
+
+#### Linux
+```bash
+# Navigate to Linux build utilities
+cd build_utils/linux
+
+# Make scripts executable
+chmod +x *.sh
+
+# Run the complete setup
+./download_vocab_files_linux.sh
+./install_python_dependencies_linux.sh
+./build_rust_linux.sh
+./build_python_rust_linux.sh
+
+# Test the installation
+./test_rust_linux.sh
+./test_python_rust_linux.sh
+
+# Try the examples
+cd ../../examples
+chmod +x *.sh
+./run_harmony_chatbot_gui.sh  # Requires tkinter: sudo apt install python3-tk
+```
+
+### Example Applications
+
+After building, explore the example applications in the `examples/` directory:
+
+- **GUI Chatbot** (`harmony_chatbot_gui.py`) - Interactive harmony format exploration
+- **Command-line Renderer** (`harmony_renderer.py`) - Convert prompts to tokens
+- **Command-line Parser** (`harmony_parser.py`) - Parse tokens back to messages
+
+See `examples/README.md` for detailed usage instructions.
 
 ### Developing locally
 
